@@ -11,6 +11,7 @@ class SolidityVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by SolidityParser#sourceUnit.
     def visitSourceUnit(self, ctx:SolidityParser.SourceUnitContext):
+        print(ctx.getText())
         return self.visitChildren(ctx)
 
 
@@ -106,6 +107,7 @@ class SolidityVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by SolidityParser#typeName.
     def visitTypeName(self, ctx:SolidityParser.TypeNameContext):
+        print(ctx.getText())
         return self.visitChildren(ctx)
 
 
@@ -351,22 +353,31 @@ class SolidityVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by SolidityParser#elementaryTypeNameExpression.
     def visitElementaryTypeNameExpression(self, ctx:SolidityParser.ElementaryTypeNameExpressionContext):
+        print(ctx.getText())
         return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#numberLiteral.
     def visitNumberLiteral(self, ctx:SolidityParser.NumberLiteralContext):
-        return self.visitChildren(ctx)
+        return ctx.getText()
+        # print("visitNumberLiteral:  " + ctx.getText())
+        # return self.visitChildren(ctx)
+
 
 
     # Visit a parse tree produced by SolidityParser#annotatedTypeName.
+    # 변수의 타입
     def visitAnnotatedTypeName(self, ctx:SolidityParser.AnnotatedTypeNameContext):
-        return self.visitChildren(ctx)
+        return ctx.getText()
+        # print("visitAnnotatedTypeName:  " + ctx.getText())
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#identifier.
     def visitIdentifier(self, ctx:SolidityParser.IdentifierContext):
-        return self.visitChildren(ctx)
+        return ctx.getText()
+        # print(ctx.getText())
+        # return self.visitChildren(ctx)
 
 
 
