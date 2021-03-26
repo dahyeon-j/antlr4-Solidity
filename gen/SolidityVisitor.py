@@ -111,8 +111,8 @@ class SolidityVisitor(ParseTreeVisitor):
     # Solidity.g4 72 line
     def visitStateVariableDeclaration(self, ctx:SolidityParser.StateVariableDeclarationContext):
         text = ''
-        for child in ctx.getChildren():
-            print(str(child.__class__) + "    " + child.getText())
+        # for child in ctx.getChildren():
+        #     print(str(child.__class__) + "    " + child.getText())
 
         for child in ctx.getChildren():
             if child.getText() == ';':
@@ -127,12 +127,18 @@ class SolidityVisitor(ParseTreeVisitor):
             elif 'Identifier' in str(child.__class__):
                 text += self.visitIdentifier(child)
             else:
-                text += self.visitExpression(ctx)
+                text += self.visit(child)
+                # text += self.visitExpression(child)
         return text
         # return self.visitChildren(ctx)
 
     # not original def
     def visitExpression(self, ctx):
+        # for child in ctx.getChildren():
+        #     print(str(child.__class__) + "    " + child.getText())
+        if 'NumberLiteral' in str(ctx.__class__):
+            self.visitNumberLiteral(ctx)
+        return ''
 
 
     # Visit a parse tree produced by SolidityParser#constructorDefinition.
@@ -144,6 +150,7 @@ class SolidityVisitor(ParseTreeVisitor):
     # Visit a parse tree produced by SolidityParser#functionDefinition.
     def visitFunctionDefinition(self, ctx:SolidityParser.FunctionDefinitionContext):
         return ''
+        # return 'function ' + self.visitIndexExpr(ctx.getChild(1)) + self.visitParameterList(ctx.getChild(2)) + self.visitModifierList(ctx.getChild(3)) + self.visit
         # return self.visitChildren(ctx)
 
 
@@ -436,12 +443,12 @@ class SolidityVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by SolidityParser#elementaryTypeNameExpression.
     def visitElementaryTypeNameExpression(self, ctx:SolidityParser.ElementaryTypeNameExpressionContext):
-        print(ctx.getText())
         return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#numberLiteral.
     def visitNumberLiteral(self, ctx:SolidityParser.NumberLiteralContext):
+        print('?')
         return ctx.getText()
         # print("visitNumberLiteral:  " + ctx.getText())
         # return self.visitChildren(ctx)
