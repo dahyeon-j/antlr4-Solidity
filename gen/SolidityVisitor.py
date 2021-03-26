@@ -253,16 +253,19 @@ class SolidityVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by SolidityParser#doWhileStatement.
     def visitDoWhileStatement(self, ctx:SolidityParser.DoWhileStatementContext):
-        return self.visitChildren(ctx)
+        return 'do \n' + self.visitStatement(ctx.getChild(1)) + 'while (' + self.visitExpression(ctx.getChild(4)) + ');'
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#continueStatement.
     def visitContinueStatement(self, ctx:SolidityParser.ContinueStatementContext):
-        return self.visitChildren(ctx)
+        return 'continue;'
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#breakStatement.
     def visitBreakStatement(self, ctx:SolidityParser.BreakStatementContext):
+        return 'break;'
         return self.visitChildren(ctx)
 
 
@@ -448,7 +451,6 @@ class SolidityVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by SolidityParser#numberLiteral.
     def visitNumberLiteral(self, ctx:SolidityParser.NumberLiteralContext):
-        print('?')
         return ctx.getText()
         # print("visitNumberLiteral:  " + ctx.getText())
         # return self.visitChildren(ctx)
