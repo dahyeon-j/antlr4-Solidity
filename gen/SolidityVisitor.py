@@ -23,6 +23,7 @@ class SolidityVisitor(ParseTreeVisitor):
         # contracts
         for i in range(1, ctx.getChildCount() - 1):
             text += self.visitContractDefinition(ctx.getChild(i))
+        print(text)
         return self.visitChildren(ctx)
 
 
@@ -32,7 +33,7 @@ class SolidityVisitor(ParseTreeVisitor):
         # for child in ctx.getChildren():
         #     print(str(child.__class__) + "    " + child.getText())
         # return text
-        return 'gragma ' + self.visitVersionPragma(ctx.getChild(1)) + ';\n\n'
+        return 'pragma ' + self.visitVersionPragma(ctx.getChild(1)) + ';\n\n'
 
 
     # Visit a parse tree produced by SolidityParser#VersionPragma.
@@ -72,7 +73,7 @@ class SolidityVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by SolidityParser#contractDefinition.
     def visitContractDefinition(self, ctx:SolidityParser.ContractDefinitionContext):
-        text = 'contract ' + self.visitIdentifier(ctx.getChild(1)) + '{\n'
+        text = 'contract ' + self.visitIdentifier(ctx.getChild(1)) + ' {\n'
         for i in range(3, ctx.getChildCount() - 1):
             text += self.visitContractPart(ctx.getChild(i))
         text += '\n}'
@@ -82,18 +83,22 @@ class SolidityVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by SolidityParser#contractPart.
     def visitContractPart(self, ctx:SolidityParser.ContractPartContext):
+        return self.visit(ctx.getChild(0))
         # for child in ctx.getChildren():
         #     print(str(child.__class__) + "    " + child.getText())
-        if 'StateVariableDeclaration' in str(ctx.getChild(0).__class__):
-            return self.visitStateVariableDeclaration(ctx.getChild(0))
-        elif 'ConstructorDefinition' in str(ctx.getChild(0).__class__):
-            return self.visitConstructorDefinition(ctx.getChild(0))
-        elif 'FunctionDefinition' in str(ctx.getChild(0).__class__):
-            return self.visitFunctionDefinition(ctx.getChild(0))
-        elif 'EnumDefinition' in str(ctx.getChild(0).__class__):
-            return self.visitEnumDefinition(ctx.getChild(0))
-
-        return ''
+        # if 'StateVariableDeclaration' in str(ctx.getChild(0).__class__):
+        #     return self.visitStateVariableDeclaration(ctx.getChild(0))
+        # elif 'ConstructorDefinition' in str(ctx.getChild(0).__class__):
+        #     return self.visitConstructorDefinition(ctx.getChild(0))
+        # elif 'FunctionDefinition' in str(ctx.getChild(0).__class__):
+        #     print('?' + self.visit(ctx.getChild(0)))
+        #
+        #     print('!')
+        #     return self.visitFunctionDefinition(ctx.getChild(0))
+        # elif 'EnumDefinition' in str(ctx.getChild(0).__class__):
+        #     return self.visitEnumDefinition(ctx.getChild(0))
+        #
+        # return ''
         # return self.visitChildren(ctx)
 
 
@@ -111,8 +116,7 @@ class SolidityVisitor(ParseTreeVisitor):
     # Solidity.g4 72 line
     def visitStateVariableDeclaration(self, ctx:SolidityParser.StateVariableDeclarationContext):
         text = ''
-        # for child in ctx.getChildren():
-        #     print(str(child.__class__) + "    " + child.getText())
+
 
         for child in ctx.getChildren():
             if child.getText() == ';':
@@ -121,47 +125,54 @@ class SolidityVisitor(ParseTreeVisitor):
                 if child.getText() == '=':
                     text += ' = '
                 else:
+
                     text += (child.getText() + ' ')
             elif 'AnnotatedTypeName' in str(child.__class__):
-                text += self.visitAnnotatedTypeName(child)
+                text += (self.visitAnnotatedTypeName(child) + ' ')
             elif 'Identifier' in str(child.__class__):
                 text += self.visitIdentifier(child)
             else:
                 text += self.visit(child)
-                # text += self.visitExpression(child)
+
         return text
         # return self.visitChildren(ctx)
 
     # not original def
-    def visitExpression(self, ctx):
-        # for child in ctx.getChildren():
-        #     print(str(child.__class__) + "    " + child.getText())
-        if 'NumberLiteral' in str(ctx.__class__):
-            self.visitNumberLiteral(ctx)
-        return ''
+    # ??
+    # def visitExpression(self, ctx):
+    #     # for child in ctx.getChildren():
+    #     #     print(str(child.__class__) + "    " + child.getText())
+    #     if 'NumberLiteral' in str(ctx.__class__):
+    #         self.visitNumberLiteral(ctx)
+    #     return ''
 
 
     # Visit a parse tree produced by SolidityParser#constructorDefinition.
     def visitConstructorDefinition(self, ctx:SolidityParser.ConstructorDefinitionContext):
-        return ''
-        # return self.visitChildren(ctx)
+        return 'constructor' + self.visitParameterList(ctx.getChild(1)) + self.visitModifierList(ctx.getChild(2)) + self.visitBlock(ctx.getChild(3))
 
 
     # Visit a parse tree produced by SolidityParser#functionDefinition.
     def visitFunctionDefinition(self, ctx:SolidityParser.FunctionDefinitionContext):
-        return ''
-        # return 'function ' + self.visitIndexExpr(ctx.getChild(1)) + self.visitParameterList(ctx.getChild(2)) + self.visitModifierList(ctx.getChild(3)) + self.visit
-        # return self.visitChildren(ctx)
+        if ctx.getChildCount() == 5:
+            return 'function ' + self.visitIdentifier(ctx.getChild(1)) + self.visitParameterList(ctx.getChild(2)) + ' ' + self.visitModifierList(ctx.getChild(3)) + ' ' + self.visitBlock(ctx.getChild(4))
+        else:
+            return 'function ' + self.visitIdentifier(ctx.getChild(1)) + self.visitParameterList(ctx.getChild(2))  + ' ' + self.visitModifierList(ctx.getChild(3)) + ' ' + self.visitReturnParameters(ctx.getChild(4)) + ' ' + self.visitBlock(ctx.getChild(5))
 
 
     # Visit a parse tree produced by SolidityParser#returnParameters.
     def visitReturnParameters(self, ctx:SolidityParser.ReturnParametersContext):
-        return self.visitChildren(ctx)
+        return 'return ' + self.visitParameterList(ctx.getChild(1))
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#modifierList.
     def visitModifierList(self, ctx:SolidityParser.ModifierListContext):
-        return self.visitChildren(ctx)
+        if hasattr(ctx.getChild(0), 'visitStateMutability'):
+            return self.visitStateMutability(ctx.getChild(0))
+        else:
+            return ctx.getChild(0).getText()
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#modifier.
@@ -171,11 +182,26 @@ class SolidityVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by SolidityParser#parameterList.
     def visitParameterList(self, ctx:SolidityParser.ParameterListContext):
-        return self.visitChildren(ctx)
+        text = '('
+        for i in range(1, ctx.getChildCount() - 1):
+            if 'ParameterContext' in str(ctx.getChild(i).__class__):
+                text += self.visitParameter(ctx.getChild(i))
+            else:
+                text += ', '
+        text += ')'
+        return text
 
 
     # Visit a parse tree produced by SolidityParser#parameter.
     def visitParameter(self, ctx:SolidityParser.ParameterContext):
+        text = ''
+        for child in ctx.getChildren():
+            if 'Identifier' in str(child.__class__):
+                text += (' ' + self.visitIdentifier(child))
+            elif 'AnnotatedTypeNameContext' in str(child.__class__):
+                text += self.visitAnnotatedTypeName(child)
+            else:
+                text += (child.getText + ' ')
         return self.visitChildren(ctx)
 
 
@@ -197,8 +223,7 @@ class SolidityVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by SolidityParser#typeName.
     def visitTypeName(self, ctx:SolidityParser.TypeNameContext):
-        print(ctx.getText())
-        return self.visitChildren(ctx)
+        return self.visit(ctx.getChild(0))
 
 
     # Visit a parse tree produced by SolidityParser#userDefinedTypeName.
@@ -213,12 +238,17 @@ class SolidityVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by SolidityParser#stateMutability.
     def visitStateMutability(self, ctx:SolidityParser.StateMutabilityContext):
-        return self.visitChildren(ctx)
+        return ctx.getChild(0).getText()
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#block.
     def visitBlock(self, ctx:SolidityParser.BlockContext):
-        return self.visitChildren(ctx)
+        text = '{\n'
+        # for i in range(1, ctx.getChildCount() - 1):
+        #     text += self.visitStatement(ctx.getChild(i))
+        text += '}\n'
+        return text
 
 
     # Visit a parse tree produced by SolidityParser#statement.
@@ -233,22 +263,30 @@ class SolidityVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by SolidityParser#ifStatement.
     def visitIfStatement(self, ctx:SolidityParser.IfStatementContext):
-        return self.visitChildren(ctx)
-
+        if ctx.getChildCount() == 5:
+            return 'if (' + self.visit(ctx.getChild(2)) + ')' + self.visitStatement(ctx.getChild(4))
+        else:
+            return 'if (' + self.visit(ctx.getChild(2)) + ')' + self.visitStatement(ctx.getChild(4)) + 'else' + self.visitStatement(ctx.getChild(6))
 
     # Visit a parse tree produced by SolidityParser#whileStatement.
     def visitWhileStatement(self, ctx:SolidityParser.WhileStatementContext):
-        return self.visitChildren(ctx)
+        return 'while (' + self.visitStatement(ctx.getChild(2)) + ')' + self.visitStatement(ctx.getChild(4))
 
 
     # Visit a parse tree produced by SolidityParser#simpleStatement.
     def visitSimpleStatement(self, ctx:SolidityParser.SimpleStatementContext):
-        return self.visitChildren(ctx)
+        if hasattr(ctx.getChild(0), 'visitVariableDeclarationStatement'):
+            self.visitVariableDeclarationStatement(ctx.getChild(0))
+        else:
+            self.visitExpressionStatement(ctx.getChild(0))
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#forStatement.
+    # ToDo
     def visitForStatement(self, ctx:SolidityParser.ForStatementContext):
-        return self.visitChildren(ctx)
+        return 'for'
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#doWhileStatement.
@@ -271,171 +309,210 @@ class SolidityVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by SolidityParser#returnStatement.
     def visitReturnStatement(self, ctx:SolidityParser.ReturnStatementContext):
-        return self.visitChildren(ctx)
+        if ctx.getChildCount() == 3:
+            return 'return' + self.visit(ctx.getChild(1)) + ';'
+        else:
+            return 'return;'
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#variableDeclarationStatement.
     def visitVariableDeclarationStatement(self, ctx:SolidityParser.VariableDeclarationStatementContext):
-        return self.visitChildren(ctx)
+        if ctx.getChildCount() == 2:
+            return self.visitVariableDeclaration(ctx.getChild(0)) + ';'
+        else:
+            return self.visitVariableDeclaration(ctx.getChild(0)) + ' = ' + self.visit(ctx.getChild(2)) + ';'
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#elementaryTypeName.
     def visitElementaryTypeName(self, ctx:SolidityParser.ElementaryTypeNameContext):
-        return self.visitChildren(ctx)
+        return ctx.getText()
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#AndExpr.
     def visitAndExpr(self, ctx:SolidityParser.AndExprContext):
-        return self.visitChildren(ctx)
+        return self.visit(ctx.getChild(0)) + ' && ' + self.visit(ctx.getChild(2))
 
 
     # Visit a parse tree produced by SolidityParser#ParenthesisExpr.
     def visitParenthesisExpr(self, ctx:SolidityParser.ParenthesisExprContext):
-        return self.visitChildren(ctx)
+        return '(' + self.visit(ctx.getChild(1)) + ')'
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#BitwiseOrExpr.
     def visitBitwiseOrExpr(self, ctx:SolidityParser.BitwiseOrExprContext):
-        return self.visitChildren(ctx)
+        return self.visit(ctx.getChild(0)) + ' | ' + self.visit(ctx.getChild(2))
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#AllExpr.
     def visitAllExpr(self, ctx:SolidityParser.AllExprContext):
-        return self.visitChildren(ctx)
+        return ctx.getText()
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#IteExpr.
+    # 3항 연산자
     def visitIteExpr(self, ctx:SolidityParser.IteExprContext):
-        return self.visitChildren(ctx)
+        return self.visit(ctx.getChild(0)) + '? ' + self.visit(ctx.getChild(2)) + ' : ' + self.visit(ctx.getChild(4))
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#PowExpr.
     def visitPowExpr(self, ctx:SolidityParser.PowExprContext):
-        return self.visitChildren(ctx)
+        return self.visit(ctx.getChild(0)) + ' ** ' + self.visit(ctx.getChild(2))
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#StringLiteralExpr.
     def visitStringLiteralExpr(self, ctx:SolidityParser.StringLiteralExprContext):
-        return self.visitChildren(ctx)
+        return ctx.getText()
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#PlusMinusExpr.
     def visitPlusMinusExpr(self, ctx:SolidityParser.PlusMinusExprContext):
-        return self.visitChildren(ctx)
+        return self.visit(ctx.getChild(0)) + ' ' + ctx.getChild(1).getText() + ' ' + self.visit(ctx.getChild(2))
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#CompExpr.
     def visitCompExpr(self, ctx:SolidityParser.CompExprContext):
-        return self.visitChildren(ctx)
+        return self.visit(ctx.getChild(0)) + ' ' + ctx.getChild(1).getText() + ' ' + self.visit(ctx.getChild(2))
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#IndexExpr.
     def visitIndexExpr(self, ctx:SolidityParser.IndexExprContext):
-        return self.visitChildren(ctx)
+        return self.visit(ctx.getChild(0)) + '[' + self.visit(ctx.getChild(2)) + ']'
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#SignExpr.
     def visitSignExpr(self, ctx:SolidityParser.SignExprContext):
-        return self.visitChildren(ctx)
+        return ctx.getChild(0).getText() + self.visit(ctx.getChild(1))
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#NumberLiteralExpr.
     def visitNumberLiteralExpr(self, ctx:SolidityParser.NumberLiteralExprContext):
-        return self.visitChildren(ctx)
+        return self.visitNumberLiteral(ctx.getChild(0))
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#BitwiseNotExpr.
     def visitBitwiseNotExpr(self, ctx:SolidityParser.BitwiseNotExprContext):
-        return self.visitChildren(ctx)
+        return '~' + self.visit(ctx.getChild(1))
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#IdentifierExpr.
     def visitIdentifierExpr(self, ctx:SolidityParser.IdentifierExprContext):
-        return self.visitChildren(ctx)
+        return self.visitIdentifier(ctx.getChild(0))
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#BooleanLiteralExpr.
     def visitBooleanLiteralExpr(self, ctx:SolidityParser.BooleanLiteralExprContext):
-        return self.visitChildren(ctx)
+        return ctx.getText()
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#MeExpr.
     def visitMeExpr(self, ctx:SolidityParser.MeExprContext):
-        return self.visitChildren(ctx)
+        return ctx.getText()
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#NotExpr.
     def visitNotExpr(self, ctx:SolidityParser.NotExprContext):
-        return self.visitChildren(ctx)
+        return '!' + self.visit(ctx.getChild(1))
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#BitShiftExpr.
     def visitBitShiftExpr(self, ctx:SolidityParser.BitShiftExprContext):
-        return self.visitChildren(ctx)
+        return self.visit(ctx.getChild(0)) + ' ' + ctx.getChild(1).getText() + ' ' + self.visit(ctx.getChild(2))
 
 
     # Visit a parse tree produced by SolidityParser#BitwiseAndExpr.
     def visitBitwiseAndExpr(self, ctx:SolidityParser.BitwiseAndExprContext):
-        return self.visitChildren(ctx)
+        return self.visit(ctx.getChild(0)) + ' ' + ctx.getChild(1).getText() + ' ' + self.visit(ctx.getChild(2))
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#MultDivModExpr.
     def visitMultDivModExpr(self, ctx:SolidityParser.MultDivModExprContext):
-        return self.visitChildren(ctx)
+        return self.visit(ctx.getChild(0)) + ' ' + ctx.getChild(1).getText() + ' ' + self.visit(ctx.getChild(2))
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#AssignmentExpr.
     def visitAssignmentExpr(self, ctx:SolidityParser.AssignmentExprContext):
-        return self.visitChildren(ctx)
+        return self.visit(ctx.getChild(0)) + ' ' + ctx.getChild(1).getText() + ' ' + self.visit(ctx.getChild(2))
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#TupleExpr.
     def visitTupleExpr(self, ctx:SolidityParser.TupleExprContext):
-        return self.visitChildren(ctx)
+        return self.visitTupleExpression(ctx.getChild(0))
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#OrExpr.
     def visitOrExpr(self, ctx:SolidityParser.OrExprContext):
-        return self.visitChildren(ctx)
+        return self.visit(ctx.getChild(0)) + ' ' + ctx.getChild(1).getText() + ' ' + self.visit(ctx.getChild(2))
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#FunctionCallExpr.
     def visitFunctionCallExpr(self, ctx:SolidityParser.FunctionCallExprContext):
-        return self.visitChildren(ctx)
+        return self.visit(ctx.getChild(0)) + '(' + self.visitFunctionCallArguments(ctx.getChild(2)) + ')'
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#EqExpr.
     def visitEqExpr(self, ctx:SolidityParser.EqExprContext):
-        return self.visitChildren(ctx)
+        return self.visit(ctx.getChild(0)) + '(' + self.visitFunctionCallArguments(ctx.getChild(2)) + ')'
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#PostCrementExpr.
     def visitPostCrementExpr(self, ctx:SolidityParser.PostCrementExprContext):
-        return self.visitChildren(ctx)
+        return self.visit(ctx.getChild(0)) + ctx.getChild(1).getText()
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#PrimitiveCastExpr.
     def visitPrimitiveCastExpr(self, ctx:SolidityParser.PrimitiveCastExprContext):
-        return self.visitChildren(ctx)
+        return self.visitElementaryTypeName(ctx.getChild(0)) + '(' + self.visit(ctx.getChild(2)) + ')'
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#BitwiseXorExpr.
     def visitBitwiseXorExpr(self, ctx:SolidityParser.BitwiseXorExprContext):
-        return self.visitChildren(ctx)
+        return self.visit(ctx.getChild(0)) + ' ' + ctx.getChild(1).getText() + ' ' + self.visit(ctx.getChild(2))
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#MemberAccessExpr.
     def visitMemberAccessExpr(self, ctx:SolidityParser.MemberAccessExprContext):
-        return self.visitChildren(ctx)
+        return self.visit(ctx.getChild(0)) + ctx.getChild(1).getText() + self.visitIdentifier(ctx.getChild(2))
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#PreCrementExpr.
     def visitPreCrementExpr(self, ctx:SolidityParser.PreCrementExprContext):
-        return self.visitChildren(ctx)
+        return ctx.getChild(0).getText() + self.visit(ctx.getChild(1))
+        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#functionCallArguments.
     def visitFunctionCallArguments(self, ctx:SolidityParser.FunctionCallArgumentsContext):
+
         return self.visitChildren(ctx)
 
 
@@ -460,7 +537,10 @@ class SolidityVisitor(ParseTreeVisitor):
     # Visit a parse tree produced by SolidityParser#annotatedTypeName.
     # 변수의 타입
     def visitAnnotatedTypeName(self, ctx:SolidityParser.AnnotatedTypeNameContext):
-        return ctx.getText()
+        if ctx.getChildCount() == 1:
+            return self.visitTypeName(ctx.getChild(0))
+        else:
+            return self.visitTypeName(ctx.getChild(0)) + '@' + self.visit(ctx.getChild(2))
         # print("visitAnnotatedTypeName:  " + ctx.getText())
         # return self.visitChildren(ctx)
 
