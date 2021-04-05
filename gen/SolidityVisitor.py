@@ -8,30 +8,37 @@ else:
 # This class defines a complete generic visitor for a parse tree produced by SolidityParser.
 
 class SolidityVisitor(ParseTreeVisitor):
-
+    indent_size = 4
+    indent = indent_size * ' '
     # Visit a parse tree produced by SolidityParser#sourceUnit.
-    """
-    <class 'SolidityParser.SolidityParser.PragmaDirectiveContext'>    pragmasolidity>=0.4.0<0.6.0;
-    <class 'SolidityParser.SolidityParser.ContractDefinitionContext'>    contractSimpleStorage{uintstoredData;functionset(uintx)public{storedData=x;}functionget()publicviewreturns(uint){returnstoredData;}}
-    <class 'antlr4.tree.Tree.TerminalNodeImpl'>    <EOF>
-    """
+
     def visitSourceUnit(self, ctx:SolidityParser.SourceUnitContext):
         text = ''
 
-        text += self.visitPragmaDirective(ctx.getChild(0)) # pragma directive
+        # text += self.visitPragmaDirective(ctx.getChild(0)) # pragma directive
+        print(self.visitPragmaDirective(ctx.getChild(0)))
 
         # contracts
         for i in range(1, ctx.getChildCount() - 1):
             text += self.visitContractDefinition(ctx.getChild(i))
-        print(text)
+        lines = text.split("\n")
+        cnt = 0
+        for line in lines:
+            if line == '{':
+                print(cnt * self.indent + '{')
+                cnt += 1
+            elif line == '}':
+                cnt -= 1
+                print(cnt * self.indent + '}')
+            else:
+                print(cnt * self.indent + line)
         return text
-        # return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by SolidityParser#pragmaDirective.
     def visitPragmaDirective(self, ctx:SolidityParser.PragmaDirectiveContext):
 
-        return 'pragma ' + self.visitVersionPragma(ctx.getChild(1)) + ';\n\n'
+        return 'pragma ' + self.visitVersionPragma(ctx.getChild(1)) + ';\n'
 
 
     # Visit a parse tree produced by SolidityParser#VersionPragma.
@@ -58,40 +65,22 @@ class SolidityVisitor(ParseTreeVisitor):
             return ctx.getText()
         else:
             return self.visitVersionOperator(ctx.getChild(0)) + ctx.getChild(1).getText()
-        # for child in ctx.getChildren():
-        #     print(str(child.__class__) + "    " + child.getText())
-        # return ''
-        # return self.visitChildren(ctx)
+
 
 
     # Visit a parse tree produced by SolidityParser#contractDefinition.
     def visitContractDefinition(self, ctx:SolidityParser.ContractDefinitionContext):
-        text = 'contract ' + self.visitIdentifier(ctx.getChild(1)) + ' {\n'
+        text = 'contract ' + self.visitIdentifier(ctx.getChild(1)) + ' \n{\n'
         for i in range(3, ctx.getChildCount() - 1):
             text += self.visitContractPart(ctx.getChild(i))
-        text += '\n}'
+        text += '}'
         return text
 
 
     # Visit a parse tree produced by SolidityParser#contractPart.
     def visitContractPart(self, ctx:SolidityParser.ContractPartContext):
         return self.visit(ctx.getChild(0))
-        # for child in ctx.getChildren():
-        #     print(str(child.__class__) + "    " + child.getText())
-        # if 'StateVariableDeclaration' in str(ctx.getChild(0).__class__):
-        #     return self.visitStateVariableDeclaration(ctx.getChild(0))
-        # elif 'ConstructorDefinition' in str(ctx.getChild(0).__class__):
-        #     return self.visitConstructorDefinition(ctx.getChild(0))
-        # elif 'FunctionDefinition' in str(ctx.getChild(0).__class__):
-        #     print('?' + self.visit(ctx.getChild(0)))
-        #
-        #     print('!')
-        #     return self.visitFunctionDefinition(ctx.getChild(0))
-        # elif 'EnumDefinition' in str(ctx.getChild(0).__class__):
-        #     return self.visitEnumDefinition(ctx.getChild(0))
-        #
-        # return ''
-        # return self.visitChildren(ctx)
+
 
 
     # Visit a parse tree produced by SolidityParser#stateVariableDeclaration.
