@@ -84,17 +84,6 @@ class SolidityVisitor(ParseTreeVisitor):
 
 
     # Visit a parse tree produced by SolidityParser#stateVariableDeclaration.
-    """
-    <class 'antlr4.tree.Tree.TerminalNodeImpl'>    final
-    <class 'SolidityParser.SolidityParser.AnnotatedTypeNameContext'>    uint
-    <class 'SolidityParser.SolidityParser.IdentifierContext'>    storedData
-    <class 'antlr4.tree.Tree.TerminalNodeImpl'>    ;
-    <class 'antlr4.tree.Tree.TerminalNodeImpl'>    final
-    <class 'SolidityParser.SolidityParser.AnnotatedTypeNameContext'>    uint
-    <class 'SolidityParser.SolidityParser.IdentifierContext'>    storedData
-    <class 'antlr4.tree.Tree.TerminalNodeImpl'>    ;
-    """
-    # Solidity.g4 72 line
     def visitStateVariableDeclaration(self, ctx:SolidityParser.StateVariableDeclarationContext):
         text = ''
         for child in ctx.getChildren():
@@ -209,13 +198,24 @@ class SolidityVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by SolidityParser#userDefinedTypeName.
     def visitUserDefinedTypeName(self, ctx:SolidityParser.UserDefinedTypeNameContext):
-        return ''
+        text = ''
+        for i in range(ctx.getChildCount()):
+            if i % 2 == 0:
+                text += self.visitIdentifier(ctx.getChild(i))
+            else:
+                text += '.'
+
+        return text
 
 
 
     # Visit a parse tree produced by SolidityParser#mapping.
     def visitMapping(self, ctx:SolidityParser.MappingContext):
-        return ''
+        text = 'mapping (' + self.visitElementaryTypeName(ctx.getChild(2))
+        if(ctx.getChildCount()) == 8:
+            text += ('!' + self.visitIdentifier(ctx.getChild(4)))
+        text += (' => ' + self.visitAnnotatedTypeName(ctx.getChild(ctx.getChildCount() - 2)) + ')')
+        return text
 
 
 
