@@ -19,4 +19,4 @@ def main(file_name):
     printer.visitSourceUnit(tree)
 
 if __name__ == '__main__':
-    main("test.sol")
+    main("test1.sol")

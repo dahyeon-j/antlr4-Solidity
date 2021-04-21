@@ -122,9 +122,9 @@ class SolidityVisitor(ParseTreeVisitor):
     # Visit a parse tree produced by SolidityParser#functionDefinition.
     def visitFunctionDefinition(self, ctx:SolidityParser.FunctionDefinitionContext):
         if ctx.getChildCount() == 5:
-            return 'function ' + self.visitIdentifier(ctx.getChild(1)) + self.visitParameterList(ctx.getChild(2)) + ' ' + self.visitModifierList(ctx.getChild(3)) + ' ' + self.visitBlock(ctx.getChild(4))
+            return 'function ' + self.visitIdentifier(ctx.getChild(1)) + self.visitParameterList(ctx.getChild(2)) + ' ' + self.visitModifierList(ctx.getChild(3)) + ' \n' + self.visitBlock(ctx.getChild(4))
         else:
-            return 'function ' + self.visitIdentifier(ctx.getChild(1)) + self.visitParameterList(ctx.getChild(2))  + ' ' + self.visitModifierList(ctx.getChild(3)) + ' ' + self.visitReturnParameters(ctx.getChild(4)) + ' ' + self.visitBlock(ctx.getChild(5))
+            return 'function ' + self.visitIdentifier(ctx.getChild(1)) + self.visitParameterList(ctx.getChild(2))  + ' ' + self.visitModifierList(ctx.getChild(3)) + ' ' + self.visitReturnParameters(ctx.getChild(4)) + ' \n' + self.visitBlock(ctx.getChild(5))
 
 
     # Visit a parse tree produced by SolidityParser#returnParameters.
@@ -181,13 +181,24 @@ class SolidityVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by SolidityParser#enumDefinition.
     def visitEnumDefinition(self, ctx:SolidityParser.EnumDefinitionContext):
-
-        return ''
+        text = 'enum ' + self.visitIdentifier(ctx.getChild(1)) + "{ "
+        for i in range(3, ctx.getChildCount() -1):
+            if i % 2 == 1:
+                text += self.visitEnumValue(ctx.getChild(i))
+            else:
+                text += ', '
+        text += ' }\n'
+        return text
 
 
     # Visit a parse tree produced by SolidityParser#variableDeclaration.
     def visitVariableDeclaration(self, ctx:SolidityParser.VariableDeclarationContext):
-        return ''
+        text = self.visitAnnotatedTypeName(ctx.getChild(ctx.getChildCount() - 2)) + self.visitIdentifier(ctx.getChild(ctx.getChildCount() - 1))
+
+        for i in range(ctx.getChildCount() - 3, -1, -1):
+            text = ctx.getChild(i).getText() + text
+
+        return text
 
 
 
@@ -229,7 +240,7 @@ class SolidityVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by SolidityParser#expressionStatement.
     def visitExpressionStatement(self, ctx:SolidityParser.ExpressionStatementContext):
-        return self.visit(ctx.getChild(0)) + ';'
+        return self.visit(ctx.getChild(0)) + ';\n'
 
 
     # Visit a parse tree produced by SolidityParser#ifStatement.
@@ -247,9 +258,9 @@ class SolidityVisitor(ParseTreeVisitor):
     # Visit a parse tree produced by SolidityParser#simpleStatement.
     def visitSimpleStatement(self, ctx:SolidityParser.SimpleStatementContext):
         if 'VariableDeclarationStatement' in str(ctx.getChild(0).__class__):
-            self.visitVariableDeclarationStatement(ctx.getChild(0))
+            return self.visitVariableDeclarationStatement(ctx.getChild(0))
         else:
-            self.visitExpressionStatement(ctx.getChild(0))
+            return self.visitExpressionStatement(ctx.getChild(0))
 
 
     # Visit a parse tree produced by SolidityParser#forStatement.
@@ -260,7 +271,7 @@ class SolidityVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by SolidityParser#doWhileStatement.
     def visitDoWhileStatement(self, ctx:SolidityParser.DoWhileStatementContext):
-        return 'do \n' + self.visitStatement(ctx.getChild(1)) + 'while (' + self.visitExpression(ctx.getChild(4)) + ');'
+        return 'do \n' + self.visitStatement(ctx.getChild(1)) + 'while (' + self.visitExpression(ctx.getChild(4)) + ');\n'
 
 
     # Visit a parse tree produced by SolidityParser#continueStatement.
@@ -270,23 +281,23 @@ class SolidityVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by SolidityParser#breakStatement.
     def visitBreakStatement(self, ctx:SolidityParser.BreakStatementContext):
-        return 'break;'
+        return 'break;\n'
 
 
     # Visit a parse tree produced by SolidityParser#returnStatement.
     def visitReturnStatement(self, ctx:SolidityParser.ReturnStatementContext):
         if ctx.getChildCount() == 3:
-            return 'return' + self.visit(ctx.getChild(1)) + ';'
+            return 'return' + self.visit(ctx.getChild(1)) + ';\n'
         else:
-            return 'return;'
+            return 'return;\n'
 
 
     # Visit a parse tree produced by SolidityParser#variableDeclarationStatement.
     def visitVariableDeclarationStatement(self, ctx:SolidityParser.VariableDeclarationStatementContext):
         if ctx.getChildCount() == 2:
-            return self.visitVariableDeclaration(ctx.getChild(0)) + ';'
+            return self.visitVariableDeclaration(ctx.getChild(0)) + ';\n'
         else:
-            return self.visitVariableDeclaration(ctx.getChild(0)) + ' = ' + self.visit(ctx.getChild(2)) + ';'
+            return self.visitVariableDeclaration(ctx.getChild(0)) + ' = ' + self.visit(ctx.getChild(2)) + ';\n'
 
 
     # Visit a parse tree produced by SolidityParser#elementaryTypeName.
