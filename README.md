@@ -138,3 +138,17 @@ contract C {
 * require(bool condition, string memory message): 조건이 충족되지 않으면 되돌림 - 입력과 외부 구성요소에 사용 + 에러 메시지 제공
 * revert(): 실행 중지 및 상태 변경 취소
 * revert(string memory reason): 설명 문자열과 함께 실행 중지 및 상태 변경 취소
+
+## Mathematical and Cryptographic Functions
+* addmod(uint x, uint y, uint k) returns (uint): (x + y) % k 계산. 0.5.0 버전 이후부터 k != 0을 보장
+* mulmod(uint x, uint y, uint k) returns (uint): (x * y) % k 계산. 0.5.0 버전 이후부터 k != 0을 보장
+* keccak256(bytes memory) returns (bytes32): 입력값의 Keccak-256 해시값 계산.
+* sha256(bytes memory) returns (bytes32): 입력값의 SHA-256 해시값 계산.
+* ripemd160(bytes memory) returns (bytes20): 입력값의 RIPEMD-160 해시값 계산.
+* ecrecover(bytes32 hash, uint8 v, bytes32 r, bytes32 s) returns (address): 공개키와 연관된 주소 복원하거나 0을 리턴
+
+## Members of Address Types
+* \<address\>.balance (uint256): wei 주소의 잔고
+
+## Contract Related
+
