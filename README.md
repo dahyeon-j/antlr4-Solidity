@@ -444,10 +444,16 @@ contract Mutex {
 **공통점**
 - state variable 선언에 사용
 - contract가 생성된 뒤에 변경 불가  
+- 컴파일러는 변수에 대한 저장 공간을 예약 하지 않음 -> 이 말은 어셈블리어에서 실제 값이 들어간다는 말? 
 
 **차이점**
 - constant: 컴파일할 때 값이 고정
 - immutable: 생성시간에 값이 할당됨
+
+state variable과 비교하여 constant variable, immutable variable의 가스 비용이 더 낮음
+
+constant variable가 할당되는 표현식에는 모두 값이 복사되고, 매번 다시 평가되어 로컬 최적화
+
 
 
 
