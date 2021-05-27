@@ -150,5 +150,306 @@ contract C {
 ## Members of Address Types
 * \<address\>.balance (uint256): wei 주소의 잔고
 
-## Contract Related
+
+
+#### Contract
+
+-   객체 지향 언어의 클래스와 유사
+
+# Creating Contracts
+
+-   contract가 생성되면 생성자(`constructor`키워드와 선언된 함수)가 한 번 실행됨
+-   constructor은 선택 사항 -> default constructor
+-   constructor은 하나만 가능(오버로드가 지원되지 않음)
+-   constructor가 실행된 후, contract의 최종 코드가 블록체인에 저장됨
+
+```
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.4.22 <0.9.0;
+
+
+contract OwnedToken {
+    TokenCreator creator;
+    address owner;
+    bytes32 name;
+
+    // 생성자
+    constructor(bytes32 _name) {
+        owner = msg.sender;
+
+        creator = TokenCreator(msg.sender);
+        name = _name;
+    }
+
+    function changeName(bytes32 newName) public {
+        if (msg.sender == address(creator))
+            name = newName;
+    }
+
+    function transfer(address newOwner) public {
+        if (msg.sender != owner) return;
+
+        if (creator.isTokenTransferOK(owner, newOwner))
+            owner = newOwner;
+    }
+}
+
+// constructor가 있지 않음
+// default constructor
+contract TokenCreator {
+    function createToken(bytes32 name)
+        public
+        returns (OwnedToken tokenAddress)
+    {새
+        return new OwnedToken(name);
+    }
+
+    function changeName(OwnedToken tokenAddress, bytes32 name) public {
+        tokenAddress.changeName(name);
+    }
+
+    function isTokenTransferOK(address currentOwner, address newOwner)
+        public
+        pure
+        returns (bool ok)
+    {
+        return keccak256(abi.encodePacked(currentOwner, newOwner))[0] == 0x7f;
+    }
+}
+```
+
+# Visibility and Getters
+
+#### Solidity의 함수 호출 종류
+
+-   내부 호출: 실제 EVM 호출을 생성하지 않음
+-   외부 호출: 내부 호출을 실행
+
+#### Visibility 종류
+
+|   | Fuction | State Variable | note |
+| :-: | :-: | :-: | - |
+| external | O | X | `external function`: 다른 contract나 transaction을 통해 호출 가능<br />external function `f`는 `this.f()`를 통해 호출(`f()`는 동작하지 않음|
+| public | O | O | `public function`: 내부적으로 호출하거나 메시지를 통해서 호출 가능<br />`public state variable`: 자동적으로 getter 함수가 생성됨 |
+| internal | O | O | State Variable의 기본 가시성 수준.<br />현재 contract나 파생된 contract에서 접근 가능. |
+| private | O | O | 정의된 contract에서만 가시적. <br />파생 클래스에서는 비가시적. |
+
+#### visibility 지정자 위치
+
+-   상태 변수의 타입 뒤
+-   매개변수 리스트와 리턴 매개변수 리스트 사이
+    
+``` solidity
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.4.16 <0.9.0;
+    
+contract C {  
+function f(uint a) private pure returns (uint b) { return a + 1; } // 매개변수 리스트와 리턴 매개변수 리스트 사이  
+function setData(uint a) internal { data = a; } // 매개변수 리스트와 리턴 매개변수 리스트 사이  
+uint public data; // 상태 변수 타입 뒤  
+}  
+```
+
+``` solidity
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.4.16 <0.8.0;
+
+contract C {
+    uint private data;
+
+    function f(uint a) private pure returns(uint b) { return a + 1; }
+    function setData(uint a) public { data = a; }
+    function getData() public view returns(uint) { return data; }
+    function compute(uint a, uint b) internal pure returns (uint) { return a + b; }
+}
+
+// This will not compile
+contract D {
+    function readData() public {
+        C c = new C();
+        uint local = c.f(7); // error: member `f` is not visible -> f는 private
+        c.setData(3);
+        local = c.getData();
+        local = c.compute(3, 5); // error: member `compute` is not visible -> compute는 internal이기 때문에 contract C나 혹은 contract C에서 파생된 contract에서만 접근 가능
+    }
+}
+
+contract E is C {
+    function g() public {
+        C c = new C();
+        uint val = compute(3, 5); // access to internal member (from derived to parent contract) -> E는 derived contract이기 때문에 접근 가능
+    }
+}
+```
+
+## Getter Functions
+- public state variable에 대해 컴파일러가 자동으로 생성하는 함수
+``` solidity
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.4.16 <0.8.0;
+
+contract C {
+    uint public data = 42;
+}
+
+contract Caller {
+    C c = new C();
+    function f() public view returns (uint) {
+        return c.data(); // data(): return state variable "data"
+    }
+}
+```
+- getter function은 external 수준으로 가시성을 가짐
+    - this.data(): 외부 접근
+    - data(): 내부 접근
+``` solidity
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.4.0 <0.9.0;
+
+contract C {
+    uint public data;
+    function x() public returns (uint) {
+        data = 3; // internal access
+        return this.data(); // external access
+    }
+}
+```
+- `public` state variable인 array 타입은 getter function으로 배열의 요소에 접근 가능
+    - 전체 array를 리턴할 때 높은 gas 비용을 방지
+``` solidity
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.4.16 <0.8.0;
+
+contract arrayExample {
+    // public state variable
+    uint[] public myArray;
+
+    // 컴파일러에 의해 자동으로 생성되는 getter 
+    /*
+    function myArray(uint i) public view returns (uint) {
+        return myArray[i];
+    }
+    */
+
+    // 전체 array를 리턴하는 function
+    function getArray() public view returns (uint[] memory) {
+        return myArray;
+    }
+}
+```
+
+```solidity
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.4.0 <0.8.0;
+
+contract Complex {
+    struct Data {
+        uint a;
+        bytes3 b;
+        mapping (uint => uint) map;
+    }
+    mapping (uint => mapping(bool => Data[])) public data; // ??
+}
+```
+위의 코드는 아래와 같은 funtion을 생성한다.
+``` solidity
+function data(uint arg1, bool arg2, uint arg3) public returns (uint a, bytes3 b) {
+    a = data[arg1][arg2][arg3].a;
+    b = data[arg1][arg2][arg3].b;
+}
+```
+
+# Function Modifiers
+- 함수의 동작을 변경하기 위해 사용
+- contract에서 상속 가능
+- virtual인 경우에만 derived contract에서 재정의 가능
+``` solidity
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >0.7.0 <0.9.0;
+
+contract owned {
+    constructor() { owner = payable(msg.sender); }
+    address payable owner;
+
+    modifier onlyOwner {
+        require(
+            msg.sender == owner,
+            "Only owner can call this function."
+        );
+        _;
+    }
+}
+
+contract destructible is owned {
+    // owned에서 onlyOwner modifier  상속받아 destroy에 적용
+    // 
+    function destroy() public onlyOwner {
+        selfdestruct(owner);
+    }
+}
+
+contract priced {
+    // modifier은 arguement를 받을 수 있음
+    modifier costs(uint price) {
+        if (msg.value >= price) {
+            _;
+        }
+    }
+}
+
+contract Register is priced, destructible {
+    mapping (address => bool) registeredAddresses;
+    uint price;
+
+    constructor(uint initialPrice) { price = initialPrice; }
+
+    // payable 키워드가 없다면 Ether가 보내는 것을 모두 거절
+    function register() public payable costs(price) {
+        registeredAddresses[msg.sender] = true;
+    }
+
+    function changePrice(uint _price) public onlyOwner {
+        price = _price;
+    }
+}
+
+contract Mutex {
+    bool locked;
+    modifier noReentrancy() {
+        require(
+            !locked,
+            "Reentrant call."
+        );
+        locked = true;
+        _;
+        locked = false;
+    }
+
+    // 
+    function f() public noReentrancy returns (uint) {
+        (bool success,) = msg.sender.call("");
+        require(success);
+        return 7;
+    }
+}
+```
+- contract C에 정의된 modifier m에 접근하려면, C.m으로 참조 가능
+- 공백으로 구분된 리스트로 여러 개의 modifier을 function에 적용 가능
+- 수정한 argument나 함수의 반환 값에 암묵적으로 접근하거나 변경할 수 없음
+- modifier나 funtion으로부터 명시적인 반환으로 현재 modifier과 function의 본문만 남음. 반환 변수가 할당되고 `_` 뒤에 제어 흐름이 지속.
+- modifier은 함수의 body가 실행되지 않도록 할 수 있으며, 이 경우 function의 body가 없는 것 처럼 반환 값이 기본 값으로 설정됨.
+
+# Constant and Immutable State Variables
+### constant, immutable
+**공통점**
+- state variable 선언에 사용
+- contract가 생성된 뒤에 변경 불가  
+
+**차이점**
+- constant: 컴파일할 때 값이 고정
+- immutable: 생성시간에 값이 할당됨
+
+
+
+
 
