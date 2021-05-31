@@ -163,7 +163,7 @@ contract C {
 -   constructor은 하나만 가능(오버로드가 지원되지 않음)
 -   constructor가 실행된 후, contract의 최종 코드가 블록체인에 저장됨
 
-```
+``` solidity
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.4.22 <0.9.0;
 
