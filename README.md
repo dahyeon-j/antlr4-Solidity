@@ -445,16 +445,354 @@ contract Mutex {
 - state variable 선언에 사용
 - contract가 생성된 뒤에 변경 불가  
 - 컴파일러는 변수에 대한 저장 공간을 예약 하지 않음 -> 이 말은 어셈블리어에서 실제 값이 들어간다는 말? 
+- state variable과 비교하여 가스 비용이 더 낮음
 
 **차이점**
-- constant: 컴파일할 때 값이 고정
-- immutable: 생성시간에 값이 할당됨
+- constant
+    - 컴파일할 때 값이 고정
+    - 접근될 때마다 평가됨
+- immutable
+    - 생성시간에 값이 할당됨
+    - contruction time에 평가됨
+    - constant보다 제한적
 
-state variable과 비교하여 constant variable, immutable variable의 가스 비용이 더 낮음
 
-constant variable가 할당되는 표현식에는 모두 값이 복사되고, 매번 다시 평가되어 로컬 최적화
+``` solidity
+pragma solidity >=0.7.4;
+
+uint constant X = 32**22 + 8;
+
+contract C {
+    string constant TEXT = "abc";
+    bytes32 constant MY_HASH = keccak256("abc");
+    uint immutable decimals;
+    uint immutable maxBalance;
+    address immutable owner = msg.sender;
+
+    constructor(uint _decimals, address _reference) {
+        decimals = _decimals;
+        // Assignments to immutables can even access the environment.
+        maxBalance = _reference.balance;
+    }
+
+    function isBalanceTooHigh(address _other) public view returns (bool) {
+        return _other.balance > maxBalance;
+    }
+}
+```
+
+# Functions
+- 함수는 contract의 안과 밖에 선언될 수 있음
+- free functions
+    - contract 밖의 함수
+    - 암묵적으로 internal visibitlisy를 가짐
+    - 호출하는 contract에 코드가 포함됨
+    - storage variable과 범위에 포함되지 않은 function에 직접 접근이 불가능
 
 
+``` solidity
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >0.7.0 <0.9.0;
+
+// free function
+function sum(uint[] memory _arr) pure returns (uint s) {
+    for (uint i = 0; i < _arr.length; i++)
+        s += _arr[i];
+}
+
+contract ArrayExample {
+    bool found;
+    function f(uint[] memory _arr) public {
+        // free function 호출
+        // 컴파일러는 이 코드를 contract에 추가
+        uint s = sum(_arr);
+        require(s >= 10);
+        found = true;
+    }
+}
+```
+
+## Function Parameters and Return Variable
+- 함수의 파라미터는 타입을 가짐
+- 임의 개수의 값을 반환
+
+### Function Parameter
+- 변수과 같은 방식으로 선언됨
+- 사용되지 않는 매개변수의 이름은 생략 가능
+
+``` solidity
+function func(uint k, uint ) returns(uint myValue) {
+  myValue=404;
+}
+```
+
+- 지역 변수로 사용 가능
+- 할당 가능
+``` solidity
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.4.16 <0.9.0;
+
+contract Simple {
+    uint sum;
+    function taker(uint _a, uint _b) public {
+        sum = _a + _b;
+    }
+}
+```
+### Return Variable
+- `returns` 키워드 다음에 선언되는 문장
+
+``` solidity
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.4.16 <0.9.0;
+
+contract Simple {
+    function arithmetic(uint _a, uint _b)
+        public
+        pure
+        returns (uint o_sum, uint o_product)
+    {
+        // 2개의 리턴값
+        o_sum = _a + _b;
+        o_product = _a * _b;
+    }
+}
+```
+
+- 리턴 값의 이름은 생략될 수 있음
+- 다른 지역 변수로 사용 가능
+- 다시 할당 될 대 default 값으로 초기화
+- return문을 사용하여 값을 반환할 수 있음
+
+``` solidity
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.4.16 <0.9.0;
+
+contract Simple {
+    function arithmetic(uint _a, uint _b)
+        public
+        pure
+        returns (uint o_sum, uint o_product)
+    {
+        /*
+            o_sum = _a + _b;
+            o_product = _a * _b;
+        */
+        return (_a + _b, _a * _b); // return 사용
+    }
+}
+```
+
+### Returning Multiple Values
+- `return (v0, v1, ..., vn)`
+- 개수와 타입이 일치해야 함
+
+## View Functions
+- `view`: 상태를 수정하지 않겠다고 약속
+- 상태를 수정하는 문장
+    1. state variable에 쓰기
+    2. event
+    3. 다른 contract 생성
+    4. `selfdestruct`사용
+    5. 호출을 통해 Ether 전송
+    6. `view` 혹은 `pure`가 없는 함수 호출
+    7. low-level의 호출 사용
+    8. 특정 opcode가 포함된 inline assembly 사용
+
+``` solidity
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.5.0 <0.9.0;
+
+contract C {
+    function f(uint a, uint b) public view returns (uint) {
+        return a * (b + 42) + block.timestamp;
+    }
+}
+```
+
+- getter 메서드는 자동적으로 view로 표시됨
+
+## Pure Functions
+- `pure`로 선언된 함수
+- 읽거나 상태를 변경하지 않음을 약속
+- 읽는 것으로 간주되는 상황
+    1. state variable 읽기
+    2. `address(this).balance` 혹은 `<address>.balance` 접근
+    3. `block`, `tx`, `msg` 멤버들에 접근
+    4. `pure`로 표기되지 않은 함수 호출
+    5.  특정 opcode가 포함된 inline assembly 사용
+
+``` solidity
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.5.0 <0.9.0;
+
+contract C {
+    function f(uint a, uint b) public pure returns (uint) {
+        return a * (b + 42);
+    }
+}
+```
+
+- 에러 발생시에 발생할 수 있는 잠재적인 상태변화를 되돌리기 위해 `revert()`와 `require()` 사용 가능
+
+## Receive Ether Function
+- contract는 최대 한 개의 `receive` function을 가질 수 있음
+    - `function` 키워드 없이 `receive() external payable { ... }` 사용
+- argument를 가질 수 없고 아무것도 반환할 수 없음
+- `external` visibility와 `payable` 상태를 반드시 가짐
+- 가상일 수 있고, 재정의 될수 있고, modifier을 가질 수 있음
+
+``` solidity
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.6.0 <0.9.0;
+
+// This contract keeps all Ether sent to it with no way
+// to get it back.
+contract Sink {
+    event Received(address, uint);
+    receive() external payable {
+        emit Received(msg.sender, msg.value);
+    }
+}
+```
+
+## Fallback Function
+- contract는 최대 한 개의 fallback 함수를 가질 수 있음
+    - function 키워드 없이 `fallback () external [payable]`사용
+    - function 키워드 없이 `fallback (bytes calldata _input) external [payable] returns (bytes memory)` 사용
+- 반드시 external visibility를 가짐
+- 가상일 수 있고, 재정의 될 수 있고, modifier를 가질 수 있음
+- 주어진 function signature과 일치하는 함수가 없거나 receive Ether function이 없는 계약을 호출할 때 실행
+- 항상 data를 수신하지만, Ether을 받기 위해서는 payable를 반드시 표시
+
+``` solidity
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.6.2 <0.9.0;
+
+contract Test {
+    // This function is called for all messages sent to
+    // this contract (there is no other function).
+    // Sending Ether to this contract will cause an exception,
+    // because the fallback function does not have the `payable`
+    // modifier.
+    fallback() external { x = 1; }
+    uint x;
+}
+
+contract TestPayable {
+    // This function is called for all messages sent to
+    // this contract, except plain Ether transfers
+    // (there is no other function except the receive function).
+    // Any call with non-empty calldata to this contract will execute
+    // the fallback function (even if Ether is sent along with the call).
+    fallback() external payable { x = 1; y = msg.value; }
+
+    // This function is called for plain Ether transfers, i.e.
+    // for every call with empty calldata.
+    receive() external payable { x = 2; y = msg.value; }
+    uint x;
+    uint y;
+}
+
+contract Caller {
+    function callTest(Test test) public returns (bool) {
+        (bool success,) = address(test).call(abi.encodeWithSignature("nonExistingFunction()"));
+        require(success);
+        // results in test.x becoming == 1.
+
+        // address(test) will not allow to call ``send`` directly, since ``test`` has no payable
+        // fallback function.
+        // It has to be converted to the ``address payable`` type to even allow calling ``send`` on it.
+        address payable testPayable = payable(address(test));
+
+        // If someone sends Ether to that contract,
+        // the transfer will fail, i.e. this returns false here.
+        return testPayable.send(2 ether);
+    }
+
+    function callTestPayable(TestPayable test) public returns (bool) {
+        (bool success,) = address(test).call(abi.encodeWithSignature("nonExistingFunction()"));
+        require(success);
+        // results in test.x becoming == 1 and test.y becoming 0.
+        (success,) = address(test).call{value: 1}(abi.encodeWithSignature("nonExistingFunction()"));
+        require(success);
+        // results in test.x becoming == 1 and test.y becoming 1.
+
+        // If someone sends Ether to that contract, the receive function in TestPayable will be called.
+        // Since that function writes to storage, it takes more gas than is available with a
+        // simple ``send`` or ``transfer``. Because of that, we have to use a low-level call.
+        (success,) = address(test).call{value: 2 ether}("");
+        require(success);
+        // results in test.x becoming == 2 and test.y becoming 2 ether.
+
+        return true;
+    }
+}
+```
+
+
+## Function Overloading
+
+- contract는 같은 이름을 가지는 인자가 다른 함수를 가질 수 있음
+
+``` solidity
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.4.16 <0.9.0;
+
+contract A {
+    function f(uint _in) public pure returns (uint out) {
+        out = _in;
+    }
+
+    function f(uint _in, bool _really) public pure returns (uint out) {
+        if (_really)
+            out = _in;
+    }
+}
+```
+
+- external 인터페이스에 오버로드 된 함수가 있을 수 있음
+- solidity type이 아니라 external 타입에 따라 다른 경우 에러가 발생
+
+``` solidity
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.4.16 <0.9.0;
+
+// This will not compile
+contract A {
+    function f(B _in) public pure returns (B out) {
+        out = _in;
+    }
+
+    function f(address _in) public pure returns (address out) {
+        out = _in;
+    }
+}
+
+contract B {
+}
+```
+
+
+### Overload resolution and Argument matching
+- 오버로드 함수는 argument에 따라 선택됨
+- 오버로드 함수들 중 예상 타입으로 변경 가능하면 선택됨
+- 선택할 수 있는 함수가 하나가 아니라면 실패
+``` solidity
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.4.16 <0.9.0;
+
+contract A {
+    function f(uint8 _in) public pure returns (uint8 out) {
+        out = _in;
+    }
+
+    function f(uint256 _in) public pure returns (uint256 out) {
+        out = _in;
+    }
+}
+```
+- `f(50)`을 호출한 경우 에러가 발생 -> 50은 `uint8`와 `uint256` 모두 변경 가능하기 때문
 
 
 
