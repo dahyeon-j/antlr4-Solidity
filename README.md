@@ -795,5 +795,176 @@ contract A {
 - `f(50)`을 호출한 경우 에러가 발생 -> 50은 `uint8`와 `uint256` 모두 변경 가능하기 때문
 
 
+# mapping
+- key-value 값을 저장하는데 사용
+- `mapping(_KeyType => _ValueType) _VariableName`과 같이 선언
+- key의 값으로는 사용자 정의 타입이나 complex 타입을 제외한 기본 타입만 가능
+- value로는 어떤 타입이든 가능
 
+``` solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.7.6;
+
+contract NestedMapping {
+    // 1. address로 maaping을 가져온다.
+    // 2. 1에서 가져온 mapping에서 uint로 bool 타입의 값을 가져온다
+    mapping(address => mapping(uint => bool)) public nested;
+
+    function get(address _addr1, uint _i) public view returns (bool) {
+        return  nested[_addr1][_i];
+    }
+
+    function set(address _addr1, uint _i, bool _boo) public {
+        nested[_addr1][_i] = _boo;
+    }
+
+    function remove(address _addr1, uint _i) public {
+        delete nested[_addr1][_i];
+    }
+}
+```
+
+# receive
+- ether만 수신 가능한 fallback function
+- `receive` 함수가 없을 때 `fallback` 함수를 사용
+    - `receive() external payable`: 비어있는 calldata나 아무 값을 위해 사용
+    - `fallback() external payable`: 일치하는 function이 없을 때 사용
+- msg.data가 없을 때 `receive()`가 호출되고 그 외에는 `fallback()`이 호출됨
+
+### Ether를 보내는 방법
+- `transfer` (2300 gas, 에러 발생)
+- `send` (2300 gas, bool 리턴)
+- `call` (forward all gas or set gas, bool 리턴)
+
+### Ether를 받는 방법
+- `receive() external payable`
+- `fallback() external payable`  
+  
+**calldata**
+- 함수 인자가 저장
+- 수정 불가능
+- 지속성이 없음
+- 외부 함수의 매개변수가 저장되는 장소
+- memory처럼 동작
+
+### fallback 함수가 정의 되어 있지 않다면?
+- Ether을 받으면 예외가 발생하여 Ether을 돌려 보냄
+
+### msg.data
+- calldata
+
+``` solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.7.6;
+
+contract ReceiveEther {
+    // Ether을 받는 함수
+    // msg.data가 비어 있어야 함
+    receive() external payable {}
+
+    // msg.data가 비어있지 않을 때 호출되는 함수
+    fallback() external payable {}
+
+    function getBalance() public view returns (uint) {
+        return address(this).balance;
+    }
+}
+
+contract SendEther {
+    function sendViaTransfer(address payable _to) public payable {
+        // This function is no longer recommended for sending Ether.
+        _to.transfer(msg.value);
+    }
+
+    function sendViaSend(address payable _to) public payable {
+        // 전송하는 함수
+        bool sent = _to.send(msg.value);
+        require(sent, "Failed to send Ether");
+    }
+
+    function sendViaCall(address payable _to) public payable {
+        // Call returns a boolean value indicating success or failure.
+        // This is the current recommended method to use.
+        (bool sent, bytes memory data) = _to.call{value: msg.value}("");
+        require(sent, "Failed to send Ether");
+    }
+}
+```
+
+# Overloading
+
+Overloaded functions are also present in the external interface. It is an error if two externally visible functions differ by their Solidity types but not by their external types.
+
+오버로드 함수는 external 인터페이스에 존재
+external visibility를 가지는 함수가 external 타입이 아닌 solidity 타입이 다르면 에러가 발생 -> ABI 타입이 달라야!
+
+``` solidity
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.4.16 <0.9.0;
+
+// This will not compile
+// TypeError: Function overload clash during conversion to external types for arguments. -> parameter가 구분이 되지 않을 때
+contract A {
+    function f(B _in) public pure returns (B out) {
+        out = _in;
+    }
+
+    function f(address _in) public pure returns (address out) {
+        out = _in;
+    }
+}
+
+contract B {
+}
+```
+
+- contract는 address type과 동일
+
+### Mapping Solidity to ABI types
+
+| Solidity | ABI |
+|-|-|
+| address payable | `address` |
+| contract | `address` |
+| enum | smallest `uint` type that is large enough to hold all values <br /><br /> For example, an `enum` of 255 values or less is mapped to `uint8` and an `enum` of 256 values is mapped to `uint16`. |
+| struct | `tuple` |
+
+
+``` solidity
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.4.16 <0.9.0;
+
+contract A {
+    function f(uint256 _in) public pure returns (uint256 out) {
+        out = _in;
+    }
+
+    function f(address _in) public pure returns (address out) {
+        out = _in;
+    }
+}
+
+contract B {
+}
+```
+
+``` solidity
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.4.16 <0.9.0;
+
+contract A {
+    function f(B _in) public pure returns (B out) {
+        out = _in;
+    }
+
+    function f(uint256 _in) public pure returns (uint256 out) {
+        out = _in;
+    }
+}
+
+contract B {
+}
+```
+
+B와 address를 구분하지 못함.
 
