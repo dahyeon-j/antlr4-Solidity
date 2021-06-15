@@ -18,11 +18,12 @@ This is Solidity visitor written by Python3
 | microether | 10^12 wei | 1,000,000,000,000 | 10^-6 ETH |
 | milliether | 10^15 wei | 1,000,000,000,000,000 | 10^-3 ETH |
 | ether | 10^18 wei | 1,000,000,000,000,000,000 | 1 ETH |
-| \`\`\` solidity |   |   |   |
-| assert(1 wei == 1); |   |   |   |
-| assert(1 gwei == 1e9); |   |   |   |
-| assert(1 ether == 1e18); |   |   |   |
-| \`\`\` |   |   |   |
+
+``` solidity
+assert(1 wei == 1);
+assert(1 gwei == 1e9);
+assert(1 ether == 1e18);
+```
 
 # Time Units
 
